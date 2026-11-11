@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Calculadora de Posição</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+        
+
+:root {
+    --papel: #e8eef0;
+    --linha: #cbd7dc;
+    --cartao: #fbfcfc;
+    --tinta: #17303b;
+    --suave: #5a6f78;
+    --acento: #1b6ca8;
+    --acento-escuro: #14537f;
+    --destaque: #ddebf5;
+    --borda: #b7c6cd;
+    --erro: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    color: var(--tinta);
+    background-color: var(--papel);
+    background-image:
+        linear-gradient(var(--linha) 1px, transparent 1px),
+        linear-gradient(90deg, var(--linha) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+.container {
+    width: 100%;
+    max-width: 900px;
+    padding: 40px 44px 44px;
+    background: var(--cartao);
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    box-shadow: 6px 6px 0 var(--tinta);
+}
+
+header {
+    margin-bottom: 32px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--borda);
+}
+
+h1 {
+    margin: 0 0 4px;
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+.subtitulo { margin: 0; color: var(--suave); }
+
+/* esquerda: campos | direita: cálculos */
+.painel {
+    display: grid;
+    grid-template-columns: 290px 1fr;
+    gap: 40px;
+    align-items: stretch;
+}
+
+label {
+    display: block;
+    margin: 18px 0 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.entrada label:first-child { margin-top: 0; }
+
+.campo { position: relative; }
+
+.campo span {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    color: var(--suave);
+    pointer-events: none;
+}
+
+input {
+    width: 100%;
+    padding: 12px 58px 12px 14px;
+    font: inherit;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--tinta);
+    background: #fff;
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input::placeholder { color: #8fa1a9; font-weight: 400; }
+input:focus-visible {
+    outline: none;
+    border-color: var(--acento);
+    box-shadow: 0 0 0 3px rgba(27, 108, 168, 0.25);
+}
+input.erro { border-color: var(--erro); animation: tremer 0.35s; }
+
+button {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    margin-top: 26px;
+    padding: 14px 16px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--acento);
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+button:hover { background: var(--acento-escuro); }
+button:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; }
+button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 25%, rgba(255, 255, 255, 0.4) 50%, transparent 75%);
+    transform: translateX(-100%);
+    pointer-events: none;
+}
+button.calculando { animation: pressionar 0.25s ease-out; }
+button.calculando::after { animation: varrer 0.6s ease-out; }
+
+#resultado {
+    min-height: 340px;
+    padding: 26px 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--destaque);
+    border-left: 5px solid var(--acento);
+    border-radius: 0 4px 4px 0;
+}
+
+.vazio { margin: 0; line-height: 1.5; color: var(--suave); }
+.aviso { color: var(--erro); font-weight: 500; }
+
+/* as contas "escrevem-se" uma a uma */
+.passo {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    align-items: baseline;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(23, 48, 59, 0.14);
+    animation: escrever 0.45s ease-out both;
+    animation-delay: calc(var(--i) * 0.32s);
+}
+.passo:last-child { border-bottom: 0; }
+.nome { font-size: 0.85rem; color: var(--suave); }
+.conta { font-size: 1.15rem; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.final .conta { font-size: 1.9rem; font-weight: 600; color: var(--acento-escuro); }
+
+@keyframes escrever {
+    from { clip-path: inset(0 100% 0 0); opacity: 0.4; }
+    to   { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+@keyframes tremer { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@keyframes varrer { to { transform: translateX(100%); } }
+@keyframes pressionar { 50% { transform: scale(0.97); } }
+
+@media (max-width: 800px) {
+    .container { padding: 26px 20px 24px; box-shadow: 4px 4px 0 var(--tinta); }
+    h1 { font-size: 1.5rem; }
+    .painel { grid-template-columns: 1fr; gap: 28px; }
+    #resultado { min-height: 0; padding: 22px 20px; }
+    .passo { grid-template-columns: 1fr; gap: 2px; }
+    .final .conta { font-size: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::after { animation: none !important; transition: none !important; }
+}
+    </style>
+</head>
+<body>
+<main class="container">
+    <header>
+        <h1>Calculadora de Posição</h1>
+        <p class="subtitulo">Movimento Uniformemente Acelerado</p>
+    </header>
+
+    <div class="painel">
+        <div class="entrada">
+            <label for="x0">Posição inicial (x₀)</label>
+            <div class="campo"><input type="number" id="x0" placeholder="Ex: 10" step="any"><span>m</span></div>
+
+            <label for="v0">Velocidade inicial (v₀)</label>
+            <div class="campo"><input type="number" id="v0" placeholder="Ex: 2" step="any"><span>m/s</span></div>
+
+            <label for="a">Aceleração (a)</label>
+            <div class="campo"><input type="number" id="a" placeholder="Ex: 4" step="any"><span>m/s²</span></div>
+
+            <label for="tempo">Tempo (t)</label>
+            <div class="campo"><input type="number" id="tempo" placeholder="Ex: 3" step="any"><span>s</span></div>
+
+            <button id="botao" type="button" onclick="calcular()">Calcular posição</button>
+        </div>
+
+        <section id="resultado" aria-live="polite">
+            <p class="vazio">Preenche os quatro valores e carrega em Calcular. Os cálculos aparecem aqui, passo a passo.</p>
+        </section>
+    </div>
+</main>
+
+<script>
+const formato = new Intl.NumberFormat("pt-PT", { maximumFractionDigits: 4 });
+const fmt = n => { const s = formato.format(n); return (s === "-0" ? "0" : s).replace("-", "−"); };
+const par = n => n < 0 ? `(${fmt(n)})` : fmt(n);
+const arred = n => Math.round(n * 1e6) / 1e6 + 0;
+
+function calcular() {
+    const campos = ["x0", "v0", "a", "tempo"].map(id => document.getElementById(id));
+    const res = document.getElementById("resultado");
+    const botao = document.getElementById("botao");
+
+    botao.classList.remove("calculando");
+    void botao.offsetWidth;
+    botao.classList.add("calculando");
+    setTimeout(() => botao.classList.remove("calculando"), 700);
+
+    const vazios = campos.filter(c => c.value.trim() === "");
+    campos.forEach(c => c.classList.toggle("erro", vazios.includes(c)));
+    if (vazios.length) {
+        res.innerHTML = '<p class="vazio aviso">Preenche todos os campos para ver os cálculos.</p>';
+        return;
+    }
+
+    const [x0, v0, a, t] = campos.map(c => Number(c.value));
+    const t1 = arred(v0 * t);          // v₀ · t
+    const t2 = arred(0.5 * a * t * t); // ½ · a · t²
+    const x = arred(x0 + v0 * t + 0.5 * a * t * t);
+    if (![t1, t2, x].every(isFinite)) {
+        res.innerHTML = '<p class="vazio aviso">Os valores são demasiado grandes para calcular.</p>';
+        return;
+    }
+
+    const passos = [
+        ["Fórmula", "x(t) = x₀ + v₀ · t + ½ · a · t²"],
+        ["Substituir", `x(t) = ${fmt(x0)} + ${par(v0)} · ${par(t)} + ½ · ${par(a)} · ${par(t)}²`],
+        ["Calcular", `x(t) = ${fmt(x0)} + ${par(t1)} + ${par(t2)}`],
+        ["Resultado", `x(t) = <b id="valor">${fmt(x)}</b> m`]
+    ];
+    res.innerHTML = '<div class="passos">' + passos.map(([nome, conta], i) =>
+        `<div class="passo${i === 3 ? " final" : ""}" style="--i:${i}"><span class="nome">${nome}</span><span class="conta">${conta}</span></div>`
+    ).join("") + "</div>";
+
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        contar(document.getElementById("valor"), x0, x, 3 * 320); // 320 ms = intervalo entre passos no CSS
+    }
+}
+
+// o número final sobe de x₀ até ao resultado
+function contar(el, de, ate, atraso) {
+    const casas = (fmt(ate).split(",")[1] || "").length;
+    const f = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+    const mostra = x => f.format(Math.abs(x) < 0.5 / 10 ** casas ? 0 : x).replace("-", "−");
+    const inicio = performance.now() + atraso, dur = 700;
+    (function passo(agora) {
+        const p = Math.min(Math.max((agora - inicio) / dur, 0), 1);
+        el.textContent = p < 1 ? mostra(de + (ate - de) * (1 - (1 - p) ** 3)) : fmt(ate);
+        if (p < 1) requestAnimationFrame(passo);
+    })(performance.now());
+}
+
+document.querySelectorAll("input").forEach(i => {
+    i.addEventListener("input", () => i.classList.remove("erro"));
+    i.addEventListener("keydown", e => { if (e.key === "Enter") calcular(); });
+});
+</script>
+</body>
+</html>
